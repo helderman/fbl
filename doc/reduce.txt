@@ -1,0 +1,67 @@
+Rule #1: split T_APPLY (function application).
+	eval(A1 A2, S) ---> eval(A1, S) ; eval(A2, S)
+The original cell can be re-used (overwritten) to hold eval(A2, S).
+It is NOT a good idea to store eval(A1, S) there, because then we lose track
+whether or not the argument (A2) belongs to the expression being evaluated.
+A1 will be evaluated on a separate 'branch' (a new stack entry).
+This evaluation ends once a 'terminal' is reached.
+Typically, this is T_LAMBDA (see beta reduction below).
+Occasionally, it is a number; this is part of a trick to force strict
+evaluation. Then we just pop it off the stack; see 'reduce terminal' below.
+
+Rule #2: reduce T_LAMBDA (beta reduction).
+	eval(\x A1, S1) ; eval(A2, S2) ---> eval(A1, [eval(A2, S2) | S1])
+The lambda expression is popped off the stack;
+it may live on as the evaluated expression of a scope variable.
+We reuse (overwrite) eval(A2, S2) for the new node; the original node
+is ALWAYS unevaluated. There may be other references to the node,
+but those already existed when the node was still a T_APPLY (see above).
+
+Rule #3: pop terminal.
+	numeric(n)    ; E ---> E
+	eval(\x A, S) ; E ---> E
+We just pop the stack.
+Typically the terminal is not lost; it is referenced by some scope variable.
+Originally I also did a reroute of the popped expression pointer to E,
+but I doubt that is still necessary, since T_APPLY already routes there.
+
+Rule #4: evaluate identifier.
+	eval(ident(i), S:=[E0|E1|...]) ---> Ei ; ident(Ei)
+Overwrite the original cell, and push Ei (an existing cell) on the stack.
+This can be visualized as starting a new evaluation branch (like T_APPLY does);
+the branch ends when it hits a terminal.
+Because ident(Ei) holds the address of the reference to Ei in the scope,
+we can merge the two branches once Ei has been fully reduced.
+
+Rule #5: merge identifier.
+	terminal ; ident(Ei) ---> terminal
+Reroute ident(Ei) to the terminal.
+
+UPDATE:
+Combine rules #4 and #5 into one. Stop using the 'ident' node (aka 'merge').
+	eval(ident(i), S:=[E0|E1|...]) ---> Ei
+Overwrite the eval node with Ei, and reroute the scope node of Ei to it.
+
+Rule #6: recursive let.
+	eval(A : A1 : A2 : ... , S) ---> eval(A, S':=[eval(A1, S') | ... | S])
+Straightforward. We can overwrite the original cell.
+
+Rule #7: system functions.
+	eval($case, [numeric(i) | E0 | E1 | ...]) ---> Ei
+Reroute expression pointer to Ei.
+This is one of two reroutes (rule #5 is the other), but this is the only one
+that MUST be a reroute, because of the fact that Ei may still be unevaluated.
+	eval($add, [numeric(x) | numeric(y) | S]) ---> numeric(x+y)
+Overwrite the original cell.
+
+System functions must NOT be used in a regular program.
+Call the following functions instead;
+those are the only ones to call the system functions directly.
+These function definitions may need to bypass the type checker.
+
+: nil   \i 0
+: cons  \h \t \i (i $case)
+: head  \x (x 2)
+: tail  \x (x 1)
+: if    \c \t \e (cons e t c)
+: add   \x \y (x (y $add))

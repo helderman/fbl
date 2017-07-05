@@ -1,0 +1,13 @@
+/bin/*
+/debug/fblc
+/debug/*.a
+/debug/*.d
+/debug/*.o
+/include/*
+/lib/*
+/release/fblc
+/release/*.a
+/release/*.d
+/release/*.o
+/share/*
+/test/

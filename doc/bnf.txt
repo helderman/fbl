@@ -1,0 +1,23 @@
+FBL syntax in BNF notation
+
+Parser rules:
+
+<program>    ::= <expression>
+<expression> ::= <apply> | <apply> ";" <identifier> <atomic>
+<apply>      ::= <atomic> | <apply> <atomic>
+<atomic>     ::= "\" <identifier> <atomic> | "(" <expression> ")"
+               | <identifier> | <number>
+
+Lexer rules:
+
+<identifier> ::= <ident_head> | <ident_head> <ident_tail>
+<ident_head> ::= "A" | ... | "Z" | "a" | ... | "z" | "_"
+<ident_tail> ::= <ident_any> | <ident_any> <ident_tail>
+<ident_any>  ::= <ident_head> | "0" | ... | "9"
+
+<number>     ::= <sign> <unsigned> | <unsigned>
+<unsigned>   ::= <mantissa> | <mantissa> <e> <exponent>
+<mantissa>   ::= <digits> | "." <digits> | <digits> "." <digits>
+<exponent>   ::= <sign> <digits> | <digits>
+<sign>       ::= "+" | "-"
+<e>          ::= "E" | "e"

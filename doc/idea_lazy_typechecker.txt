@@ -1,0 +1,105 @@
+Instead of trying to infer everything, infer just enough.
+For example, do not try to prove that \x x has type T->T.
+Instead, try to find type conflicts in every call made to that function.
+Example:
+
+main : main (concat (itostr (f 1)) (dtostr (f 2.0)) : f \x x)
+
+We will only prove that f satisfies Int->Int and Double->Double;
+we will not try to prove that f satisfies T->T for every posible type T.
+
+Memorize every type assumption
+(i.e. a type constraint coming from an outer expression,
+that still needs to be verified against an unexplored inner expression),
+to prevent infinite loops.
+Example:
+
+main : main (x : x y : y x)
+
+From the initial requirement main :: Int, we need to prove x :: Int.
+Assuming x :: Int, we need to prove y :: Int.
+Assuming y :: Int, we need to prove x :: Int.
+There appears to be an infinite loop, we can stop here.
+We do not need to prove x :: Int; it is in line with earlier assumptions.
+Since none of the assumptions are contradictory
+(and no open 'branches' are left), we can accept all assumptions.
+
+An infinite loop does not necessarily return to the same type;
+it can also return to a specialization of the same type.
+Example:
+
+main
+: main (length l)
+: l (cons 1 (cons 2 nil))
+: length (l 0 \h \t (iadd 1 (length t)))
+: nil         \f0 \f1 f0
+: cons  \h \t \f0 \f1 (f1 h t)
+
+main :: Int
+length l :: Int
+- l :: T1
+  - cons 2 nil :: T2
+    - nil :: T3
+      - T3 == T4->T5->T4
+    - cons 2 :: T3->T2
+      - cons :: Int->T3->T2
+        - h :: Int
+        - t :: T3
+        - f1 :: T7
+        - T2 == T6->T7->T8
+        - f1 h t :: T8
+          - t :: T9
+          - f1 h :: T9->T8
+            - h :: Int
+            - f1 :: Int->T9->T8 == T7
+  - cons 1 :: T2->T1
+    - cons :: Int->T2->T1 == Int->T3->T2
+      - T1 == T2 == T3
+        - T4 == T6 == T8, T5 == T7
+- length :: T1->Int
+  - \h \t (iadd 1 (length t)) :: T10 == T11->T12->T13
+    - h :: T11
+    - t :: T12
+    - iadd 1 (length t) :: T13
+      - length t :: T14
+        - length :: T12->T14 == T1->Int
+          - T12 == T1, T14 == Int
+      - iadd 1 :: T14->T13 == Int->T13
+        - iadd :: Int->Int->T13
+          - T13 == Int
+  - l 0 :: T10->T1->Int
+    - l :: Int->T10->T1->Int
+
+But l was already assumed to be T1.
+T1 == T2 == T3 == T4->T5->T4
+- T4 == Int
+- T5 == T10
+- T4 == T1->Int
+
+So now we have a further specialization of T4.
+If we would re-check everything based on that constraint,
+then we would end up in an infinite loop (T1 and T4 are recursive types).
+
+QUESTION:
+How do we know everything remains type-safe
+if we instantiate T4 with a more specific type?
+
+A: Maybe we should always assume it is.
+Is there actually some situation where a specialization could conflict?
+What about the situation that the type is a function being called?
+Well, a specialization of the return value is harmless.
+(Because it already got its constraints from above.)
+And a specialization of the parameter should also be harmless;
+all we have to do is match it to any existing constraints;
+after all, we already dived in there.
+PROBLEM: Our first dive in depth-first;
+so by the time we find a recursive reference,
+we may not have traversed the entire parse tree.
+In other words, additional constraints may be found later.
+Possible solution: add constraints for the recursive encounter
+(but do not dive in a second time)
+so that the continuation of the first dive will bump into them eventually.
+
+Maybe we can even use this approach to determine the full generic types?
+Just makes sure to 'mark' symbols being analyzed so you don't fall into
+infinite recursion.

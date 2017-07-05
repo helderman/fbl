@@ -1,0 +1,43 @@
+#!/bin/bash
+#--------------------------------------------------------------------------
+# fbl - shell script to compile a FBL program to native code
+#
+# Step 1: fblc compiles .fbl file (together with fblrt.fbl) to .c file
+# Step 2: gcc compiles .c file and links it with the runtime library
+#--------------------------------------------------------------------------
+
+# If you need a more reliable way to determine BINDIR, look here:
+# http://stackoverflow.com/questions/59895/can-a-bash-script-tell-what-directory-its-stored-in
+BINDIR="${0%/*}"
+LIBDIR="$BINDIR/../lib"
+INCLUDEDIR="$BINDIR/../include"
+DATADIR="$BINDIR/../share"
+TMPDIR=/tmp
+TMPCFILE="$TMPDIR/fblc_output.c"
+
+RUNTIME="$LIBDIR/fblrt.a"
+SOURCES=("$DATADIR/fblrt.fbl")
+FBLC_OPTS=()
+GCC_OPTS=(-Wall -Wextra -Werror -pedantic -I"$INCLUDEDIR")
+
+while [ $# -gt 0 ]; do
+	case "$1" in
+	-d)
+		RUNTIME="$LIBDIR/fblrt.debug.a"
+		GCC_OPTS+=(-DAST_NAMES -DTRACE)
+		;;
+	-h*)
+		FBLC_OPTS+=("$1")
+		;;
+	-*)
+		GCC_OPTS+=("$1")
+		;;
+	*)
+		SOURCES+=("$1")
+		;;
+	esac
+	shift
+done
+
+"$BINDIR/fblc" "${FBLC_OPTS[@]}" "${SOURCES[@]}" > "$TMPCFILE" && \
+gcc "${GCC_OPTS[@]}" "$TMPCFILE" "$RUNTIME" -lm

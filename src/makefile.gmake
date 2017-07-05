@@ -1,0 +1,45 @@
+#----------------------------------------------------------------
+#  makefile (GNU make) for FBL compiler and FBL runtime
+#
+#  build targets
+#----------------------------------------------------------------
+
+.PHONY: all clean
+
+#----------------------------------------------------------------
+#  all
+#----------------------------------------------------------------
+
+TARGETS = fblc fblrt.a
+
+all: $(TARGETS)
+
+VPATH = ../src
+
+CFLAGS = -Wall -Wextra -pedantic
+
+OBJS = $(OBJS_FBLC) $(OBJS_FBLRT)
+OBJS_FBLC = fblc.o arg.o ast.o alpha.o errmsg.o file.o genc.o token.o parse.o typechk.o
+OBJS_FBLRT = fblrt.o reduce.o enum.o context.o expr.o prim.o stack.o strict.o heap.o trace.o
+
+fblc: $(OBJS_FBLC)
+	$(CC) $(CFLAGS) -o $@ $^
+
+fblrt.a: $(OBJS_FBLRT)
+	$(AR) rcs $@ $^
+
+# auto-generated dependencies (GCC)
+# http://www.microhowto.info/howto/automatically_generate_makefile_dependencies.html
+
+CFLAGS += -MMD -MP
+
+DEPS = $(OBJS:.o=.d)
+
+-include $(DEPS)
+
+#----------------------------------------------------------------
+#  clean
+#----------------------------------------------------------------
+
+clean:
+	$(RM) $(TARGETS) $(OBJS) $(DEPS)

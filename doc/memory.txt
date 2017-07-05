@@ -1,0 +1,87 @@
+Use reference counting garbage collector.
+
+Circular references would occur with RLET:
+- scope is a list of expressions
+- expression has scope; not just the unevaluated expressions,
+  also some evaluated ones (lambda; that is what is often called a 'closure')
+
+Use weak references:
+- An expression that is part of a scope, has a weak reference to its own scope.
+- Either do not make double references to expressions (always duplicate;
+  it is just a node with 2 pointers, i.e. ast and scope),
+  or adjust the reference counting so that when increasing the refcount of an
+  expression node, immediately increase the refcount of its scope node too.
+
+Sorry, not going to work. Example:
+f : f ((\x a) : a 1)
+Scope [a:=1] has refcount zero because its only ref is in scope [f:=(\x a)]
+
+Again, use weak references:
+- Do not make double references to expressions; always duplicate.
+  Keep a linked list of 'linked' variables; list starts at TOS.
+  Once expression is evaluated (just before popping stack), duplicate the
+  evaluated expression (AST + scope) through all nodes in the linked list.
+  NOTE: struct expr no longer needs a refcount; immediately free the expr
+  when its reference (either stack or scope node) is popped, or even
+  better, just integrate expr in both stack and scope.
+  (Good idea anyway, regardless of which GC we will be using!)
+- So now only scope has a refcount; and risks being circular.
+  WILD IDEA: considering the 3 types of scope references:
+  - as part of the scope chain (linked list): STRONG reference
+  - from expr in stack: STRONG reference
+  - from expr in scope: WEAK reference
+
+Q: this relies on every 'expr in scope' to have itself a scope pointer that
+   points either further outside, or slightly inside (from its own RLET).
+
+eval(A1 A2, S) ---> eval(A1, S) ; eval(A2, S)
+	S++ because one ref from stack becomes two.
+	Scope does not change.
+eval(\x A1, S1) ; eval(A2, S2) ---> eval(A1, [eval(A2, S2) | S1])
+	S1 disappears from stack, re-appears in scope chain (again on stack).
+	S2-- (uh oh!)
+	Adds a variable to a possibly shortened scope chain (S1).
+	NOT OK: refcount of S2 may hit zero here.
+numeric(n) ; E ---> E
+	No effect.
+eval(ident(i), S:=[E0|E1|...]) ---> Ei
+	S--, Si++
+	Can shorten the scope chain.
+eval(A : A1 : A2 : ... , S) ---> eval(A, S':=[eval(A1, S') | ... | S])
+	S'=1 (new), S does not change (stays in scope chain).
+eval($case, [numeric(i) | E0 | E1 | ...]) ---> Ei
+	Si++
+eval($add, [numeric(x) | numeric(y) | S]) ---> numeric(x+y)
+	scope--
+
+TODO: look out, CONS nodes ($case) have a circular scope; is that covered?
+
+Linking/unliking when reducing:
+
+	eval(A1 A2, S) ---> eval(A1, S) ; eval(A2, S)
+
+E1 is new; gets the correct refcount (1) from expr_create.
+E2 is recycled; same refcount.
+S: ++refcount (if not NULL).
+
+	eval(\x A1, S1) ; eval(A2, S2) ---> eval(A1, [eval(A2, S2) | S1])
+
+We create a new expr (a dup); gets the correct refcount (1) from expr_create.
+S1: ++refcount. Might or might not be decremented when the expr is popped.
+S2: --refcount. Originally strong ref (stack!), new expr has weak ref (var!).
+	- TODO: should we really unlink S2 here???
+The newly created scope node gets the correct refcount (1) from scope_add.
+Unlink the popped expr. Wait until S1 has been linked!
+The remaining expr is recycled; same refcount.
+
+	numeric(n)    ; E ---> E
+
+Unlink the popped expression.
+
+	eval(ident(i), S:=[E0|E1|...]) ---> Ei
+
+Unlink S; wait until Ei has been linked.
+
+	eval(A : A1 : A2 : ... , S) ---> eval(A, S':=[eval(A1, S') | ... | S])
+	eval($case, [numeric(i) | E0 | E1 | ...]) ---> Ei
+	eval($add, [numeric(x) | numeric(y) | S]) ---> numeric(x+y)

@@ -1,0 +1,25 @@
+Need a mark-and-scan GC.
+Too bad we have different cell sizes.
+Easy way out would be to use a union (i.e. just allocate max size)
+But I think this is a nice opportunity to write a GC that
+copies from one memory block to another.
+(Maybe this even makes it possible to do it in realtime; not important now.)
+
+First, walk the tree.
+Starting point is top of stack.
+Every node you encounter:
+
+if node is in new memory block
+	back off
+elseif type of node is 'moved'
+	reroute the pointer that brought us here
+	back off
+else
+	copy the node to the other memory block
+	overwrite the original node with type 'moved'; refer to copy
+	reroute the pointer that brought us here
+	proceed recursively (how?)
+fi
+
+Of toch 
+

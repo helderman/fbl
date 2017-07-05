@@ -1,0 +1,16 @@
+# the List type
+: nil         \f0 \f1 f0
+: cons  \h \t \f0 \f1 (f1 h t)
+
+: map \f \l (l nil \h \t (cons (f h) (map f t)))
+: filter \p \l (l nil \h \t (p h (cons h r) r : r (filter p t)))
+: foldr \f \z \l (l z \h \t (f h (foldr f z t)))
+: foldl \f \z \l (l z \h \t (foldl f (f z h) t))
+
+nil :: T0->T1->T0
+cons :: Th->Tt->T0->(Th->Tt->T)->T
+
+map :: (Th->Tfh)->(Tnil->(Th->Tt->T0->(Tfh->Tr->T)->T)->Tr)->Tr
+map :: (Th->Tfh)->Tt->Tr
+
+Tt == Tnil->(Th->Tt->T0->(Tfh->Tr->T)->T)->Tr

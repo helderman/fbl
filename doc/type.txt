@@ -1,0 +1,117 @@
+E0 ; x1 E1 ; x2 E2 ; x3 E3
+- First traverse E1; the result is the type of x1.
+  While doing this, keep the types of x1/x2/x3 open,
+  but do store the constraints you encounter for x1/x2/x3.
+  Only report the type conflicts that do not involve
+- Do the same for E2 and E3.
+- 
+
+--------------------------------------------------------
+
+Possible types while scanning the AST:
+- all types, or some type (= unknown = initial type of variable)
+- all types
+- boolean/char/integer/double or all types
+- boolean/char/integer/double
+- function T1 -> T2 or all types (i.e. also the non-function ones)
+- function T1 -> T2
+
+The last two cases follow this recursively for T1 and T2.
+
+Follow the AST recursively. Start at the top.
+From every node, first do the subtrees.
+Each subtree assembles a type for its own value, and for all unbound variables.
+After that, combine the subtrees; not only on their values,
+but also on every common unbound variable!
+Report every type conflict on a level that is as low as possible.
+Then forget about it by pretending the combined type to be 'unknown'.
+
+Storage: in the AST, need to provide every node with a list of free variables,
+so that we can register type constraints there.
+Nodes are allowed to share this list.
+NOTE: alpha.c already does just that! But currently on the stack.
+Use malloc instead, so that the type checker can benefit as well.
+
+TODO: look out for infinite loops, e.g. T1 /\ T1->T2
+Most of the time it will fail a match, like when matching against integer,
+but when matching an infinite T1->T1->T1->... against T3->T3->... - trouble?
+
+--------------------------------------------------------
+
+# SameType2 :: T1 -> T1 -> T2
+# - forces its 2 parameters to have the same type
+# - return type is 'free'
+: SameType2 \a \b (SameType2 b a)
+: SameType3 \a \b \c (SameType3 b c a)
+: SameType4 \a \b \c \d (SameType4 b c d a)
+
+# List :: T1 -> T2
+# - where T2 is the (more or less fictional) type List<T1>
+: List \T  (SameType3 (List T) nil (cons T (List T)))
+
+: nil         (\n \i (i $case) 0 : _ (SameType2 nil (List _)))
+: cons  \h \t (\n \i (i $case) 1 : _ (SameType3 (cons h t) (List h) t))
+
+Note from the 'List' definition, that lambda abstractions are special;
+their body has a type that is parameterized with the type of the parameter!
+This is essential for 'nil' to have a type that is polymorphic, but not free.
+
+--------------------------------------------------------
+
+A :: T means A has type T or more specific (i.e. 'smaller' domain)
+
+T1 < T2		if T1 is same as or more specific than T2
+T->T1 < T->T2	if T1 < T2
+T1->T < T2->T	if T1 > T2 (!) - formal parameter > actual parameter
+
+Apply node (A1 A2)
+A1 A2	:: T1
+A1	:: T3 < T2->T1
+A2	:: T2
+
+Lambda node (\x A2)
+\x A2	:: T3 > T1->T2
+x	:: T1
+A2	:: T2
+
+--------------------------------------------------------
+
+A1 A2
+start with 2 recursive calls: determine type of A1 and A2
+if either one is empty set, return empty set
+if type of A1 is 'any type' or T->T1, then ok, else show err & return empty set
+merge T with the type of A2; if that fails, show error & return empty set
+return T1
+
+\x A2
+start with 1 recursive call: determine type of A2
+if empty set, return empty set
+return T1 -> T2 (T1 is type of x, T2 is type of A2)
+
+A : x1 A1 : x2 A2 : ...
+recursive call to determine type of A1
+merge type of x1 with type of A1; if that fails, show error & return empty set
+if that fails, show err & return empty set
+repeat for the other definitions
+return type of A
+
+merging two types is a recursive process too
+merge T1->T2 with T3->T4 means
+- merge T1 with T3 (isn't this different because specific/general is swapped?)
+- merge T2 with T4
+
+--------------------------------------------------------
+
+: SameType2 \a \b (SameType2 b a)
+a			T1		a :: T1
+b			T2		b :: T2
+SameType2 b		T4		SameType2 :: T3 -> T4		T2 < T3
+SameType2 b a		T6		SameType2 :: T3 -> T5 -> T6	T1 < T5
+\b (SameType2 b a)	T2 -> T6
+\a \b (SameType2 b a)	T1 -> T2 -> T6
+: SameType2 ...		T3 -> T5 -> T6	---> T1==T3, T2==T5 ---> T2<T1, T1<T2
+
+But is it enough? T1=T2=num doesn't enforce (int,int) or (dbl,dbl)
+'if' needs something different; if bool T1 T2 has return type T1 ^ T2
+
+f x	f :: T1 -> T2, x :: T3	---> 

@@ -1,0 +1,36 @@
+#----------------------------------------------------------------
+#  makefile (Microsoft NMAKE) for FBL compiler and FBL runtime
+#
+#  build targets
+#----------------------------------------------------------------
+
+RM = del
+
+#----------------------------------------------------------------
+#  all
+#----------------------------------------------------------------
+
+TARGETS = fblc.exe fblrt.lib
+
+all: $(TARGETS)
+
+OBJS_FBLC = fblc.obj arg.obj ast.obj alpha.obj errmsg.obj file.obj genc.obj token.obj parse.obj typechk.obj
+OBJS_FBLRT = fblrt.obj reduce.obj enum.obj context.obj expr.obj prim.obj stack.obj strict.obj heap.obj trace.obj
+
+fblc.exe: $(OBJS_FBLC)
+	$(CC) /nologo $(CFLAGS) $**
+
+fblrt.lib: $(OBJS_FBLRT)
+	lib.exe /out:$@ $**
+
+{..\src\}.c.obj::
+	$(CC) /nologo $(CFLAGS) /c $<
+
+# Dependencies with header files (*.h) need to be included separately
+
+#----------------------------------------------------------------
+#  clean
+#----------------------------------------------------------------
+
+clean:
+	$(RM) $(TARGETS) $(OBJS_FBLC) $(OBJS_FBLRT)

@@ -1,0 +1,56 @@
+TODO:
+- Windows: assert fails ---> alignment problem between MEMORY and EXPR
+- monads
+  - IO
+  - 'unit' type () ?
+- interpreter
+- $args
+- string literals through function (so no dependency on Cons/Nil)
+- typechecker
+- fibs.fbl seems quite heavy on the heap; why?
++ GC: expr(ast, ctx), ctx(expr, ctx) - never have a marked null - NOT
+- istrict & dstrict (for easier type checking)?
+- rename NODE to AST?
+
+- GitHub
+  - FBL - functional but lazy - make readme.md
+- modules; should fblc just use piping and abandon input file as parameter?
+- type definitions, like List T = Nil | Cons T (List T)
+- type inference
+- more debug info: count malloc-free; report access of zero-refcount nodes
+-- optimize EXPR; use special ast pointers 0/1 instead of type (portable?)
+-- separate expr_type for lambda (benefit?)
+
+---------------------------------------------------------------------
+New programming language
+Purely functional
+Even I/O (like Haskell)
+I/O can be console-style print, turtle-like drawing, and sound
+
+Keyword 'do' for calling built-in and user-defined functions:
+	do func_name param_1 ... param_n
+Keyword 'calculate' precedes expression with infix operators
+	calculate x + (do factorial 5) - 1
+
+Function definition:
+	do getMyConst => 7
+	do getMyValue => calculate 3 + 4
+	do addOne x => calculate x + 1
+	do myAddition x y (calculate x = 0) => y
+	do myAddition x y => do addOne (do myAddition (calculate x - 1) y)
+
+Without those keywords, it will be an unevaluated function or expression
+that can be passed as a parameter (compare lambda expression)
+Works much like a macro language (string substitution)
+
+do test f x (calculate x = 0) => 0
+do test f x => calculate (do f x) + (do f (calculate x - 1))
+do test addOne
+
+----
+
+One more things about I/O:
+Modern Haskell uses monads for I/O
+So instead of a parameter (input) and return value (output),
+you return a function that processes input to output.
+Ideal for streams, like sound!

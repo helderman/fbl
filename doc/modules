@@ -1,0 +1,39 @@
+math
+: math 
+: add \x \y (x (y $add))
+: sub \x \y (x (y $sub))
+
+List : nil        (\n \i (i $case) 0)
+     : cons \h \t (\n \i (i $case) 1)
+
+: isnil   \x (eq (x 0) 0)
+: head    \x (x 2)
+
+
+: decons \f0 \f1 \x (\l1 \l0 (\i (i $case) (x 0)) (f1 (x 2) (x 1)) f0)
+
+nil    :: [T]
+cons   :: T -> [T] -> [T]
+decons :: T2 -> (T -> [T] -> T2) -> [T] -> T2
+
+decons f0 f1 nil        = f0
+decons f0 f1 (cons h t) = f1 h t
+
+----------------------------------------------------
+
+: list (\c (c $case)
+	: _ \h \t (\n \i (i $case) 1)
+	: _       (\n \i (i $case) 0)
+)
+
+When compiling module, generate .c and .h
+let the .c include its own .h
+in the .h, include other .h used by its .c (conditionally, like Kaliber did)
+in the .h, export struct { AST *VarName1, *VarName2; } ModuleName;
+in using .c, generate code #define ast123 ModuleName.VarName
+
+Only on TOPLEVEL:
+math : add \x \y (...) : sub \x y (...)
+will generate (both in .c and .h; the latter without initializer):
+struct { AST_TYPES *add, *sub; } math = {&ast123, &ast456};
+In other modules, math.add generates math.add->body

@@ -1,0 +1,80 @@
+Top-down type checker.
+
+We assign a type variable to every free variable as quickly as possible.
+So in:
+
+	E : x (E1) : y (E2) : z (E3)
+
+we assign type variables to x, y and z before diving into E, E1, E2, E3.
+
+Initially, these type variable are fully generic (have no constraints).
+Constraints emerge whenever a free variable is used.
+The type of the 'using' node is a generalization of the type of the definition.
+
+Notation: (specific type) < (generic type)
+Top down: "When I expect (generic type), I accept (specific type)."
+For example, Int and T1->T2 are specializations of T,
+but Int->Int is a generalization (!) of T->T.
+
+	f 1 : f \x (x)
+
+T[\f] == T[\x (x)] == T[\x]->T[(x)] where T[(x)] > T[\x]
+T[(f)] == 
+T[(1)]->T[(f 1)] > T[\f]
+Int->T[(f 1)] > T[\x]->T[(x)]
+Int < T[\x] < T[(x)] < T[(f 1)]
+So it is not certain that T[(f 1)] is Int,
+but it certainly is NOT double or function.
+
+Please note this must NOT affect T[\x] within other instances of f.
+Each instance of a variable is a specialized clone of the definition's type.
+
+	concat (itostr (f 1)) (dtostr (f 2.0)) : f \x (x)
+
+Problem is, when additional constraints emerge for T[\f]
+(with recursive definitions, this is inevitable),
+then these have to be propagated to ALL clones T[(f)].
+
+TODO: think about recursion.
+
+
+
+
+
+So we have two kinds of constraints: equality and specialization.
+
+Once we have collected all constraints (or while we are collecting),
+we should check whether there are any conflicting constraints.
+
+When are equality constraints non-conflicting?
+- when one of the sides is a fully generic T
+- Int and Int
+- Double and Double
+- T1->T2 and T3->T4, when there are no conflicts in T1==T3 and T2==T4
+
+When is a specialization constraint non-conflicting?
+- every type is a specialization of a fully generic T
+- Int is a specialization of Int
+- Double is a specialization of Double
+- T1->T2 is a specialization of T3->T4 if T1 iaso T3 and T2 iaso T4
+
+We will have to store type info in the AST while we are collecting constraints.
+Every node has a type variable, and that type variable has >=0 constraints.
+
+Equality can have many indirections (like a linked list),
+because we may have to merge other equalities as we go.
+
+Specializations are stored as a linked list, linked to by a type variable
+(or multiple type variables that are found to be 'equal').
+
+Int and Double are like predefined type nodes;
+probably many type variables will link to them as being 'equal' to them.
+
+T1->T2 types are created on the fly; these are complex tree-like types.
+When two of those trees are found to be equal,
+then we will have to apply equality recursively across the entire tree.
+We are actually trying to 'merge' the trees.
+
+Specialization does not involve merging the trees,
+but we do need a recursive side-by-side tree walk to detect type conflicts;
+see the rules above.

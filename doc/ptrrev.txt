@@ -1,0 +1,18 @@
+forward
+var = B (back)
+(X, Y)
+
+follow X
+(Y, B)
+
+return
+var = X
+follow Y
+(B, X)
+
+return
+var = Y
+follow B
+(X, Y)
+
+but how to know the difference between a marked destination forward (should not be followed) and a marked destination back (should always be followed)?

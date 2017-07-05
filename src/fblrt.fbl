@@ -1,0 +1,234 @@
+puts (main gets)
+; gets (g 0 ; g \i (ilt c 0 Nil (Cons c (g (iadd i 1))) ; c (getc i)))
+; puts (foldr \c \r (ilt x 0 x r ; x (putc c)) 0)
+; putc  (unop $putc)
+; getc  (unop $getc)
+
+; error $error
+
+; unop  \f \x ($strict x f)
+; binop \f \x \y ($strict y ($strict x f))
+
+; dtoint (unop $dtoint)
+; itodbl (unop $itodbl)
+
+; iadd  (binop $iadd)
+; isub  (binop $isub)
+; imul  (binop $imul)
+; iquot (binop $iquot)
+; irem  (binop $irem)
+; idiv  (binop $idiv)
+; imod  (binop $imod)
+; iand  (binop $iand)
+; ior   (binop $ior)
+; ixor  (binop $ixor)
+; icompare (binop $icompare)
+; ieq  \x \y (icompare x y False True False)
+; ineq \x \y (icompare x y True False True)
+; ilt  \x \y (icompare x y True False False)
+; ile  \x \y (icompare x y True True False)
+; igt  \x \y (icompare x y False False True)
+; ige  \x \y (icompare x y False True True)
+
+; dadd  (binop $dadd)
+; dsub  (binop $dsub)
+; dmul  (binop $dmul)
+; ddiv  (binop $ddiv)
+; dcompare (binop $dcompare)
+; deq  \x \y (dcompare x y False True False)
+; dneq \x \y (dcompare x y True False True)
+; dlt  \x \y (dcompare x y True False False)
+; dle  \x \y (dcompare x y True True False)
+; dgt  \x \y (dcompare x y False False True)
+; dge  \x \y (dcompare x y False True True)
+
+; exp   (unop $exp)
+; exp2  (unop $exp2)
+; log   (unop $log)
+; log2  (unop $log2)
+; log10 (unop $log10)
+; sqrt  (unop $sqrt)
+; sin   (unop $sin)
+; cos   (unop $cos)
+; tan   (unop $tan)
+; asin  (unop $asin)
+; acos  (unop $acos)
+; atan  (unop $atan)
+; sinh  (unop $sinh)
+; cosh  (unop $cosh)
+; tanh  (unop $tanh)
+; asinh (unop $asinh)
+; acosh (unop $acosh)
+; atanh (unop $atanh)
+; ceil  (unop $ceil)
+; floor (unop $floor)
+; trunc (unop $trunc)
+; round (unop $round)
+
+; pow \x \y (exp (dmul y (log x)))
+
+; inegate \x (isub 0 x)
+; dnegate \x (dsub 0.0 x)
+; isignum \x (icompare x 0 -1 0 1)
+; dsignum \x (dcompare x 0.0 -1.0 0.0 1.0)
+; iabs \x (icompare x 0 (inegate x) 0 x)
+; dabs \x (dcompare x 0.0 (dnegate x) 0.0 x)
+; imax \x \y (icompare x y y x x)
+; imin \x \y (icompare x y x x y)
+; dmax \x \y (dcompare x y y x x)
+; dmin \x \y (dcompare x y x x y)
+
+; quotRem \x \y (Tuple2 (iquot x y) (irem x y))
+; divMod  \x \y (Tuple2 (idiv  x y) (imod x y))
+
+; even \x (ieq (imod x 2) 0)
+; odd \x (ineq (imod x 2) 0)
+
+; gcd \a \b (ieq b 0 (iabs a) (gcd b (imod a b)))
+; lcm \a \b (idiv (iabs (imul a b)) (gcd a b))
+
+; LT    $lt		# \a \b \c a
+; EQ    $eq		# \a \b \c b
+; GT    $gt		# \a \b \c c
+
+; True  $true		# \then \else then
+; False $false		# \then \else else
+
+; not   \x    (x False True)
+; and   \x \y (x y False)
+; or    \x    (x True)
+; xor   \x    (x not id)
+
+; id \x x
+; Const \x \y x
+; apply \f \x (f x)
+; compose \f \g \x (f (g x))
+; flip \f \x \y (f y x)
+; fix \f (x ; x (f x))
+; until \p \f \x (p x x (until p f (f x)))
+
+; Tuple2 \a \b \f (f a b)
+; Tuple3 \a \b \c \f (f a b c)
+; Tuple4 \a \b \c \d \f (f a b c d)
+
+; fst \t (t \a \b a)
+; snd \t (t \a \b b)
+
+; Nil         \f0 \f1 f0
+; Cons  \h \t \f0 \f1 (f1 h t)
+
+; head \l (l error \h \t h)
+; last \l (l error \h \t (t h (last t)))
+; tail \l (l error \h \t t)
+; init \l (l error \h \t (Cons h (t Nil (init t))))
+; index \l \i (drop i l error \h \_ h)
+
+; map \f \l (l Nil \h \t (Cons (f h) (map f t)))
+; foldl \f \z \l (l z \h \t (foldl f (f z h) t))
+; foldr \f \z \l (l z \h \t (f h (foldr f z t)))
+; scanl \f \z \l (Cons z (l Nil \h \t (scanl f (f z h) t)))
+; scanr \f \z (foldr \h \t (Cons (f h (head t)) t) (Cons z Nil))
+
+; filter \p (foldr Nil \h \t (p h (Cons h t) t))
+
+; takeWhile \p (foldr \h \t (p h (Cons h t) Nil) Nil)
+; dropWhile \p \l (l Nil \h \t (p h (dropWhile p t) l))
+
+; take \n \l (l Nil \h \t (igt n 0 (Cons h (take (isub n 1) t)) Nil))
+; drop \n \l (l Nil \h \t (igt n 0 (drop (isub n 1) t) l))
+
+; concat \s1 \s2 (foldr Cons s2 s1)
+; reverse (foldl \a \h (Cons h a) Nil)
+
+; length (foldr \h \n (iadd n 1) 0)
+; all \p (foldr (compose and p) True)
+; any \p (foldr (compose or p) False)
+
+; foldand    (foldr and True)
+; foldor     (foldr or False)
+; foldconcat (foldr concat Nil)
+
+; ielem \x (any (ieq x))
+; delem \x (any (deq x))
+; isum     (foldr iadd 0)
+; dsum     (foldr dadd 0.0)
+; iproduct (foldr imul 1)
+; dproduct (foldr dmul 1.0)
+
+; iterate \f \x (Cons x (iterate f (f x)))
+; repeat (iterate id)
+; replicate \n \x (take n (repeat x))
+; cycle \l (concat l (cycle l))
+
+; zipWith \f \l1 \l2 (l1 Nil \h1 \t1 (l2 Nil \h2 \t2 (Cons (f h1 h2) (zipWith f t1 t2))))
+; zipWith \f \l1 \l2 \l3 (l1 Nil \h1 \t1 (l2 Nil \h2 \t2 (l3 Nil \h3 \t3 (Cons (f h1 h2 h3) (zipWith f t1 t2 t3)))))
+
+; isspace \c (ielem c " \t\n\r")
+; isdigit \c (and (ige c '0') (ile c '9'))
+; isupper \c (and (ige c 'A') (ile c 'Z'))
+; islower \c (and (ige c 'a') (ile c 'z'))
+; isalpha \c (or (isupper c) (islower c))
+; isalnum \c (or (isdigit c) (isalpha c))
+
+; lines \s0 (s0 Nil \c0 \s1 (
+	ieq '\n' c0 (lines s1) (
+		s1 (Cons c0 Nil) \c1 \s2 (
+			ieq '\n' c1
+			(Cons (Cons c0 Nil) (lines s2))
+			(lines s1 Nil \wh \wt (Cons (Cons c0 wh) wt))
+		)
+	)
+))
+; words \s0 (s0 Nil \c0 \s1 (
+	isspace c0 (words s1) (
+		s1 (Cons c0 Nil) \c1 \s2 (
+			isspace c1
+			(Cons (Cons c0 Nil) (words s2))
+			(words s1 Nil \wh \wt (Cons (Cons c0 wh) wt))
+		)
+	)
+))
+; unlines \l (foldconcat (map \s (concat s "\n") l))
+; unwords \l (tail (foldconcat (map (Cons ' ') l)))
+
+; itostring \n (ieq n 0 "0" (ilt n 0 (Cons '-' s) s)
+	; s (reverse (f (iabs n)))
+	; f \n (Cons (iadd (imod n 10) '0') (ilt n 10 Nil (f (idiv n 10))))
+)
+
+; dtostring \n (concat (itostring (dtoint i)) (Cons '.' (take 4 (f (dabs (dsub n i)))))
+	; i (trunc n)
+	; f \n (Cons (iadd (dtoint t10) '0') (f (dsub n10 t10))
+		; n10 (dmul n 10.0)
+		; t10 (trunc n10)
+	)
+)
+
+####  monad  ####
+
+; Monad Tuple2
+; fmap \m \f \mx (m \bind \return (bind mx \x (return (f x))))
+; join \m \mx (m \bind \return (bind mx \x x))
+; liftM \m (m \bind \return \f \mx (bind mx \x (return (f x))))
+; liftM2 \m (m \bind \return \f \mx \my (bind mx \x (bind my \y (return (f x y)))))
+
+; Maybe (Monad bindMaybe returnMaybe)
+; Nothing \f0 \f1 f0
+; Just \a \f0 \f1 (f1 a)
+; bindMaybe \mx (mx Nothing)
+; returnMaybe Just
+; fmapMaybe (fmap Maybe)
+; joinMaybe (join Maybe)
+; liftMaybe (liftM Maybe)
+; liftMaybe2 (liftM2 Maybe)
+
+; State (Monad bindState returnState)
+; bindState \mx \f \s (mx s f)
+; returnState Tuple2
+; fmapState (fmap State)
+; joinState (join State)
+; get \s (Tuple2 s s)
+
+; IO (Monad bindIO returnIO)
+; bindIO \mx \f (f mx)
+; returnIO 0

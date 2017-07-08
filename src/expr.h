@@ -1,23 +1,14 @@
 /* expr.h - expressions */
 
-typedef struct expr {
-	NODE *ast;
-	union {
-		struct context *context;
-		long i;
-		double d;
-	} dyn;
-} EXPR;
+extern MEMORY *expr_create(NODE *ast, MEMORY *context);
+extern void    expr_to_int(MEMORY *expr, long value);
+extern void    expr_to_double(MEMORY *expr, double value);
+extern void    expr_to_enum(MEMORY *expr, NODE_ABSTRACTION *abstraction);
+extern MEMORY *expr_link(MEMORY *expr);
+extern void    expr_unlink(MEMORY *expr);
+extern void    expr_merge(MEMORY *expr, MEMORY *context);
 
-extern EXPR *expr_create(NODE *ast, struct context *context);
-extern void  expr_to_int(EXPR *expr, long value);
-extern void  expr_to_double(EXPR *expr, double value);
-extern void  expr_to_enum(EXPR *expr, NODE_ABSTRACTION *abstraction);
-extern EXPR *expr_link(EXPR *expr);
-extern void  expr_unlink(EXPR *expr);
-extern void  expr_merge(EXPR *expr, struct context *context);
-
-extern NODE  expr_int, expr_double;
+extern NODE    expr_int, expr_double;
 
 /* hooks in case you want to experiment with reference counts in GC */
 #define expr_link(expr)   (expr)

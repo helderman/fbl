@@ -5,8 +5,8 @@
 #include <stdio.h>
 
 #include "ast.h"
+#include "heap.h"
 #include "expr.h"
-#include "context.h"
 #include "enum.h"
 #include "strict.h"
 #include "stack.h"
@@ -20,7 +20,7 @@
 
 static long pop_long(void)
 {
-	EXPR *expr = stack_pop();
+	MEMORY *expr = stack_pop();
 	long value = strict_get_long(expr);
 	expr_unlink(expr);
 	return value;
@@ -28,7 +28,7 @@ static long pop_long(void)
 
 static double pop_double(void)
 {
-	EXPR *expr = stack_pop();
+	MEMORY *expr = stack_pop();
 	double value = strict_get_double(expr);
 	expr_unlink(expr);
 	return value;
@@ -36,7 +36,7 @@ static double pop_double(void)
 
 static void reduce_strict(void)
 {
-	EXPR *expr = stack_tos();
+	MEMORY *expr = stack_tos();
 	strict_reduction(stack_push(), expr);
 }
 
@@ -47,13 +47,13 @@ static void reduce_error(void)
 }
 
 #define UNOP(out_func, in_type, formula)	\
-	EXPR *expr = stack_tos();		\
+	MEMORY *expr = stack_tos();		\
 	in_type x = strict_get_##in_type(expr);	\
 	out_func(expr, formula);
 
 #define BINOP(out_func, in_type, formula)	\
 	in_type x = pop_##in_type();		\
-	EXPR *expr = stack_tos();		\
+	MEMORY *expr = stack_tos();		\
 	in_type y = strict_get_##in_type(expr);	\
 	out_func(expr, formula);
 
@@ -131,7 +131,7 @@ static long stdin_position = 0;
 
 static void reduce_getc(void)
 {
-	EXPR *expr = stack_tos();
+	MEMORY *expr = stack_tos();
 	int result = strict_get_long(expr) == stdin_position ? getchar() : EOF;
 	if (result != EOF)
 	{
@@ -142,37 +142,37 @@ static void reduce_getc(void)
 
 static void reduce_putc(void)
 {
-	EXPR *expr = stack_tos();
+	MEMORY *expr = stack_tos();
 	expr_to_int(expr, putchar((int)strict_get_long(expr)));
 }
 
 static void reduce_true(void)
 {
-	EXPR **tos = stack_push();
+	MEMORY **tos = stack_push();
 	*tos = expr_create(AS_NODE(ENUM_BOOLEAN(1)), NULL);
 }
 
 static void reduce_false(void)
 {
-	EXPR **tos = stack_push();
+	MEMORY **tos = stack_push();
 	*tos = expr_create(AS_NODE(ENUM_BOOLEAN(0)), NULL);
 }
 
 static void reduce_lt(void)
 {
-	EXPR **tos = stack_push();
+	MEMORY **tos = stack_push();
 	*tos = expr_create(AS_NODE(ENUM_ORDERING(-1)), NULL);
 }
 
 static void reduce_eq(void)
 {
-	EXPR **tos = stack_push();
+	MEMORY **tos = stack_push();
 	*tos = expr_create(AS_NODE(ENUM_ORDERING(0)), NULL);
 }
 
 static void reduce_gt(void)
 {
-	EXPR **tos = stack_push();
+	MEMORY **tos = stack_push();
 	*tos = expr_create(AS_NODE(ENUM_ORDERING(1)), NULL);
 }
 

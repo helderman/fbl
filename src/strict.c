@@ -1,7 +1,7 @@
 /* strict.c - strict evaluation
 **
 ** FBL is lazy by nature; an expression is NOT automatically evaluated
-** as it is passed as a function parameter, unless we explicitly say so.
+** when passed as a function parameter, unless we explicitly say so.
 ** For this purpose we have a primitive function $strict (exposed by prim.c).
 **
 ** Usage: ($strict A F) - evaluates A, then applies (F A).
@@ -33,11 +33,12 @@
 #include <assert.h>
 
 #include "ast.h"
+#include "heap.h"
 #include "expr.h"
 #include "context.h"
 
 /* The lambda abstraction \_func (_func _arg) is static;
-** it can be used everytime we are reducing a strict argument.
+** it can be used every time we are reducing a strict argument.
 */
 #ifdef AST_NAMES
 static DEFINE def_arg = INIT_DEFINE((DEFINE *)0, AS_NODE(0), "_arg");
@@ -51,10 +52,10 @@ static NODE_IDENT ast_arg   = INIT_IDENT(&ast_lambda, 1, "_arg");
 static NODE_APPLY ast_apply = INIT_NODE(NT_APPLY, &ast_lambda, AS_NODE(&ast_func), AS_NODE(&ast_arg));
 static NODE_ABSTRACTION ast_lambda = INIT_NODE(NT_LAMBDA, &ast_parent, &def_func, AS_NODE(&ast_apply));
 
-static NODE *get_arg(EXPR *expr)
+static NODE *get_arg(MEMORY *expr)
 {
-	assert(expr->ast->nodetype == NT_APPLY);
-	return AS_APPLY(expr->ast)->argument;
+	assert(expr->m0.ast->nodetype == NT_APPLY);
+	return AS_APPLY(expr->m0.ast)->argument;
 }
 
 /* Caller has already popped $strict, has pushed a new blank stack element,
@@ -62,34 +63,34 @@ static NODE *get_arg(EXPR *expr)
 ** We overwrite this expr with: \_func (_func _arg), with context [_arg = A].
 ** We populate the blank stack element with A.
 */
-void strict_reduction(EXPR **tos, EXPR *expr)
+void strict_reduction(MEMORY **tos, MEMORY *expr)
 {
-	*tos = expr_create(get_arg(expr), expr->dyn.context);
-	expr->ast = AS_NODE(&ast_lambda);
-	expr->dyn.context = context_create(*tos, (CONTEXT *)0);
+	*tos = expr_create(get_arg(expr), expr->m1.mem);
+	expr->m0.ast = AS_NODE(&ast_lambda);
+	expr->m1.mem = context_create(*tos, (MEMORY *)0);
 }
 
 /* Primitive functions (e.g. $iadd) use these to retrieve atomic parameter
 ** values from the stack. Requires the primitive function to be used in
 ** combination with $strict. See unop and binop in fblrt.fbl.
 */
-static EXPR *strict_get_argument(EXPR *expr)
+static MEMORY *strict_get_argument(MEMORY *expr)
 {
 	NODE *node = get_arg(expr);
 	assert(node->nodetype == NT_IDENT);
-	return context_get(expr->dyn.context, AS_IDENT(node)->index)->expr;
+	return context_get(expr->m1.mem, AS_IDENT(node)->index)->m0.mem;
 }
 
-long strict_get_long(EXPR *expr)
+long strict_get_long(MEMORY *expr)
 {
-	EXPR *arg = strict_get_argument(expr);
-	assert(arg->ast == &expr_int);
-	return arg->dyn.i;
+	MEMORY *arg = strict_get_argument(expr);
+	assert(arg->m0.ast == &expr_int);
+	return arg->m1.i;
 }
 
-double strict_get_double(EXPR *expr)
+double strict_get_double(MEMORY *expr)
 {
-	EXPR *arg = strict_get_argument(expr);
-	assert(arg->ast == &expr_double);
-	return arg->dyn.d;
+	MEMORY *arg = strict_get_argument(expr);
+	assert(arg->m0.ast == &expr_double);
+	return arg->m1.d;
 }

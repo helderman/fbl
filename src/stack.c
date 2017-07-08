@@ -4,16 +4,17 @@
 #include <stdlib.h>
 
 #include "ast.h"
+#include "heap.h"
 #include "expr.h"
 #include "stack.h"
-#include "heap.h"
 #include "trace.h"
 
-static STACK *stack = NULL;
+static MEMORY *stack = NULL;
 
-static STACK *allocate(STACK *next)
+/* A stack is a linked list of expressions */
+static MEMORY *allocate(MEMORY *next)
 {
-	return (STACK *)heap_alloc(NULL, (MEMORY *)next);
+	return heap_alloc(NULL, next);
 }
 
 int stack_not_empty(void)
@@ -21,18 +22,18 @@ int stack_not_empty(void)
 	return stack != NULL;
 }
 
-EXPR *stack_tos(void)
+MEMORY *stack_tos(void)
 {
-	return stack->expr;
+	return stack->m0.mem;
 }
 
-EXPR *stack_peek(void)
+MEMORY *stack_peek(void)
 {
-	assert(stack != NULL && stack->next != NULL);
-	return stack->next->expr;
+	assert(stack != NULL && stack->m1.mem != NULL);
+	return stack->m1.mem->m0.mem;
 }
 
-EXPR **stack_push(void)
+MEMORY **stack_push(void)
 {
 	stack = allocate(stack);
 #ifdef TRACE
@@ -41,28 +42,28 @@ EXPR **stack_push(void)
 		trace_count_max_stack = trace_count_stack;
 	}
 #endif
-	return &stack->expr;
+	return &stack->m0.mem;
 }
 
-EXPR *stack_pop(void)
+MEMORY *stack_pop(void)
 {
-	STACK *old_tos = stack;
-	EXPR *expr = stack->expr;
-	stack = stack->next;
+	MEMORY *old_tos = stack;
+	MEMORY *expr = stack->m0.mem;
+	stack = stack->m1.mem;
 	stack_unlink(old_tos);
-	heap_free((MEMORY *)old_tos);
+	heap_free(old_tos);
 #ifdef TRACE
 	--trace_count_stack;
 #endif
 	return expr;
 }
 
-void stack_pop_push(EXPR *expr)
+void stack_pop_push(MEMORY *expr)
 {
-	stack->expr = expr;
+	stack->m0.mem = expr;
 }
 
-STACK *stack_pointer(void)
+MEMORY *stack_pointer(void)
 {
 	return stack;
 }

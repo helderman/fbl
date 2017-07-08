@@ -66,10 +66,12 @@ fblrt.obj: ../src/fblrt.c ../src/ast.h ../src/heap.h ../src/reduce.h
 
 ../src/reduce.h:
 
-reduce.obj: ../src/reduce.c ../src/ast.h ../src/expr.h ../src/context.h \
- ../src/stack.h ../src/trace.h
+reduce.obj: ../src/reduce.c ../src/ast.h ../src/heap.h ../src/expr.h \
+ ../src/context.h ../src/stack.h ../src/trace.h
 
 ../src/ast.h:
+
+../src/heap.h:
 
 ../src/expr.h:
 
@@ -83,23 +85,23 @@ enum.obj: ../src/enum.c ../src/ast.h
 
 ../src/ast.h:
 
-context.obj: ../src/context.c ../src/ast.h ../src/expr.h ../src/context.h \
- ../src/heap.h ../src/trace.h
+context.obj: ../src/context.c ../src/ast.h ../src/heap.h ../src/context.h \
+ ../src/trace.h
 
 ../src/ast.h:
-
-../src/expr.h:
-
-../src/context.h:
 
 ../src/heap.h:
 
+../src/context.h:
+
 ../src/trace.h:
 
-expr.obj: ../src/expr.c ../src/ast.h ../src/enum.h ../src/expr.h \
- ../src/context.h ../src/heap.h ../src/trace.h
+expr.obj: ../src/expr.c ../src/ast.h ../src/heap.h ../src/enum.h \
+ ../src/expr.h ../src/context.h ../src/trace.h
 
 ../src/ast.h:
+
+../src/heap.h:
 
 ../src/enum.h:
 
@@ -107,18 +109,16 @@ expr.obj: ../src/expr.c ../src/ast.h ../src/enum.h ../src/expr.h \
 
 ../src/context.h:
 
-../src/heap.h:
-
 ../src/trace.h:
 
-prim.obj: ../src/prim.c ../src/ast.h ../src/expr.h ../src/context.h \
+prim.obj: ../src/prim.c ../src/ast.h ../src/heap.h ../src/expr.h \
  ../src/enum.h ../src/strict.h ../src/stack.h ../src/trace.h
 
 ../src/ast.h:
 
-../src/expr.h:
+../src/heap.h:
 
-../src/context.h:
+../src/expr.h:
 
 ../src/enum.h:
 
@@ -128,39 +128,38 @@ prim.obj: ../src/prim.c ../src/ast.h ../src/expr.h ../src/context.h \
 
 ../src/trace.h:
 
-stack.obj: ../src/stack.c ../src/ast.h ../src/expr.h ../src/stack.h \
- ../src/heap.h ../src/trace.h
+stack.obj: ../src/stack.c ../src/ast.h ../src/heap.h ../src/expr.h \
+ ../src/stack.h ../src/trace.h
 
 ../src/ast.h:
+
+../src/heap.h:
 
 ../src/expr.h:
 
 ../src/stack.h:
-
-../src/heap.h:
 
 ../src/trace.h:
 
-strict.obj: ../src/strict.c ../src/ast.h ../src/expr.h ../src/context.h
+strict.obj: ../src/strict.c ../src/ast.h ../src/heap.h ../src/expr.h \
+ ../src/context.h
 
 ../src/ast.h:
-
-../src/expr.h:
-
-../src/context.h:
-
-heap.obj: ../src/heap.c ../src/ast.h ../src/expr.h ../src/context.h \
- ../src/stack.h ../src/heap.h ../src/trace.h
-
-../src/ast.h:
-
-../src/expr.h:
-
-../src/context.h:
-
-../src/stack.h:
 
 ../src/heap.h:
+
+../src/expr.h:
+
+../src/context.h:
+
+heap.obj: ../src/heap.c ../src/ast.h ../src/heap.h ../src/stack.h \
+ ../src/trace.h
+
+../src/ast.h:
+
+../src/heap.h:
+
+../src/stack.h:
 
 ../src/trace.h:
 

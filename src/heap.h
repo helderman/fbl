@@ -1,6 +1,18 @@
 /* heap.h - memory cells */
 
-typedef union memory MEMORY;
+typedef struct memory MEMORY;
+
+struct memory {
+	union m0 {
+		MEMORY *mem;
+		NODE *ast;
+	} m0;
+	union m1 {
+		MEMORY *mem;
+		long i;
+		double d;
+	} m1;
+};
 
 extern int     heap_size;
 

@@ -5,82 +5,85 @@
 #include <stdio.h>
 
 #include "ast.h"
+#include "heap.h"
 #include "expr.h"
 #include "context.h"
 #include "stack.h"
 #include "trace.h"
 
-static void reduce_ident(EXPR *expr)
+static void reduce_ident(MEMORY *expr)
 {
-	expr_merge(expr, context_get(expr->dyn.context, AS_IDENT(expr->ast)->index));
+	expr_merge(
+		expr,
+		context_get(expr->m1.mem, AS_IDENT(expr->m0.ast)->index));
 }
 
-static void reduce_apply(EXPR *expr)
+static void reduce_apply(MEMORY *expr)
 {
 	/* The order is essential: create AND attach new stack node BEFORE
 	** creating expression node. Otherwise GC may wipe the latter.
 	*/
-	EXPR **tos = stack_push();
+	MEMORY **tos = stack_push();
 	*tos = expr_create(
-		AS_APPLY(expr->ast)->function,
-		context_link(expr->dyn.context));
+		AS_APPLY(expr->m0.ast)->function,
+		context_link(expr->m1.mem));
 }
 
-static void reduce_lambda(EXPR *expr)		/* beta reduction */
+static void reduce_lambda(MEMORY *expr)		/* beta reduction */
 {
-	EXPR *arg;
-	EXPR *new_tos = stack_peek();
-	assert(new_tos->ast->nodetype == NT_APPLY);
+	MEMORY *arg;
+	MEMORY *new_tos = stack_peek();
+	assert(new_tos->m0.ast->nodetype == NT_APPLY);
 	arg = expr_create(
-		AS_APPLY(new_tos->ast)->argument,
-		new_tos->dyn.context);
-	new_tos->ast = AS_ABSTRACTION(expr->ast)->body;
-	new_tos->dyn.context = expr->dyn.context;
+		AS_APPLY(new_tos->m0.ast)->argument,
+		new_tos->m1.mem);
+	new_tos->m0.ast = AS_ABSTRACTION(expr->m0.ast)->body;
+	new_tos->m1.mem = expr->m1.mem;
 	stack_pop_push(arg);	/* prevent arg being wiped by GC */
-	new_tos->dyn.context = context_create(arg, new_tos->dyn.context);
+	new_tos->m1.mem = context_create(arg, new_tos->m1.mem);
 	stack_pop();
 }
 
-static void reduce_rlet(EXPR *expr)
+static void reduce_rlet(MEMORY *expr)
 {
-	CONTEXT *context;
-	NODE_ABSTRACTION *ast = AS_ABSTRACTION(expr->ast);
+	MEMORY *context;
+	NODE_ABSTRACTION *ast = AS_ABSTRACTION(expr->m0.ast);
 	DEFINE *def;
 	for (def = ast->define; def != NULL; def = def->next)
 	{
-		expr->dyn.context = context_create(NULL, expr->dyn.context);
-		expr->dyn.context->expr = expr_create(def->body, NULL);
+		expr->m1.mem = context_create(NULL, expr->m1.mem);
+		expr->m1.mem->m0.mem = expr_create(def->body, NULL);
 	}
-	expr->ast = ast->body;
-	context = expr->dyn.context;
+	expr->m0.ast = ast->body;
+	context = expr->m1.mem;
 	for (def = ast->define; def != NULL; def = def->next)
 	{
-		context->expr->dyn.context = context_link(expr->dyn.context);
-		context = context->next;
+		context->m0.mem->m1.mem = context_link(expr->m1.mem);
+		context = context->m1.mem;	/* next */
 	}
 	context_unlink(context);
-	context_unlink(expr->dyn.context);
+	context_unlink(expr->m1.mem);
 }
 
-static void reduce_expr(EXPR *expr)
+static void reduce_expr(MEMORY *expr)
 {
 	assert(expr != NULL);
-	assert(expr->ast != NULL);
-	switch (expr->ast->nodetype)
+	assert(expr->m0.ast != NULL);
+	switch (expr->m0.ast->nodetype)
 	{
 	case NT_PRIM:
 		stack_pop();
-		AS_PRIM(expr->ast)->func();
+		AS_PRIM(expr->m0.ast)->func();
 		expr_unlink(expr);
 		break;
 	case NT_IDENT:
 		reduce_ident(expr);
 		break;
 	case NT_INT:
-		expr_to_int(expr, AS_INT(expr->ast)->value);
+		expr_to_int(expr, AS_INT(expr->m0.ast)->value);
 		break;
 	case NT_DOUBLE:
-		expr_to_double(expr, AS_DOUBLE(expr->ast)->value);
+		expr_to_double(expr, AS_DOUBLE(expr->m0.ast)->value);
 		break;
 	case NT_APPLY:
 		reduce_apply(expr);
@@ -95,15 +98,15 @@ static void reduce_expr(EXPR *expr)
 		stack_pop();	/* atom = result of strict evaluation */
 		break;
 	default:
-		fprintf(stderr, "Unknown node type %d\n", expr->ast->nodetype);
+		fprintf(stderr, "Unknown node type %d\n", expr->m0.ast->nodetype);
 		exit(1);
 	}
 }
 
 int reduce_tree(NODE *ast)
 {
-	EXPR **tos = stack_push();
-	EXPR *expr = *tos = expr_create(ast, NULL);
+	MEMORY **tos = stack_push();
+	MEMORY *expr = *tos = expr_create(ast, NULL);
 	while (stack_not_empty())
 	{
 #ifdef TRACE
@@ -111,10 +114,10 @@ int reduce_tree(NODE *ast)
 #endif
 		reduce_expr(stack_tos());
 	}
-	assert(expr->ast == &expr_int);
+	assert(expr->m0.ast == &expr_int);
 #ifdef TRACE
 	trace_output_counts();
-	trace_exit(expr->dyn.i);
+	trace_exit(expr->m1.i);
 #endif
-	return (int)expr->dyn.i;
+	return (int)expr->m1.i;
 }

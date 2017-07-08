@@ -5,6 +5,7 @@
 #include <stdio.h>
 
 #include "ast.h"
+#include "heap.h"
 #include "expr.h"
 #include "context.h"
 #include "stack.h"
@@ -76,34 +77,7 @@ static void print_ast(FILE *fp, NODE *ast)
 	}
 }
 
-/***
-static void print_context_old(FILE *fp, CONTEXT *context)
-{
-#ifdef AST_NAMES
-	fprintf(fp, " [");
-	for (; context != NULL; context = context->next)
-	{
-		fprintf(fp, "%s", context->name);
-		if (context->expr->ast == &expr_int)
-		{
-			fprintf(fp, "=%ld", context->expr->i);
-		}
-		else if (context->expr->ast == &expr_double)
-		{
-			fprintf(fp, "=%f", context->expr->d);
-		}
-		if (context->next != NULL) fprintf(fp, ", ");
-	}
-	fprintf(fp, "]");
-#else
-	int depth = 0;
-	while (context != NULL) { depth++; context = context->next; }
-	fprintf(fp, " [%d]", depth);
-#endif
-}
-***/
-
-static void print_context(FILE *fp, NODE_ABSTRACTION *ast, CONTEXT *context)
+static void print_context(FILE *fp, NODE_ABSTRACTION *ast, MEMORY *context)
 {
 	int index = 0;
 	fprintf(fp, " [");
@@ -124,15 +98,15 @@ static void print_context(FILE *fp, NODE_ABSTRACTION *ast, CONTEXT *context)
 			}
 			else
 			{
-				if (context->expr->ast == &expr_int)
+				if (context->m0.mem->m0.ast == &expr_int)
 				{
-					fprintf(fp, "=%ld", context->expr->dyn.i);
+					fprintf(fp, "=%ld", context->m0.mem->m1.i);
 				}
-				else if (context->expr->ast == &expr_double)
+				else if (context->m0.mem->m0.ast == &expr_double)
 				{
-					fprintf(fp, "=%f", context->expr->dyn.d);
+					fprintf(fp, "=%f", context->m0.mem->m1.d);
 				}
-				context = context->next;
+				context = context->m1.mem;	/* next */
 			}
 		}
 	}
@@ -147,25 +121,25 @@ static void print_context(FILE *fp, NODE_ABSTRACTION *ast, CONTEXT *context)
 void trace_output_counts(void)
 {
 	static int step = 0;
-	STACK *stack;
+	MEMORY *stack;
 	fprintf(stderr, "#%d: expr %d, context %d, stack %d, GCs %d\n",
 		++step, trace_count_expr, trace_count_context, trace_count_stack, trace_count_gc);
-	for (stack = stack_pointer(); stack != NULL; stack = stack->next)
+	for (stack = stack_pointer(); stack != NULL; stack = stack->m1.mem)
 	{
-		EXPR *expr = stack->expr;
+		MEMORY *expr = stack->m0.mem;
 		fprintf(stderr, "- ");
-		print_ast(stderr, expr->ast);
-		if (expr->ast == &expr_int)
+		print_ast(stderr, expr->m0.ast);
+		if (expr->m0.ast == &expr_int)
 		{
-			fprintf(stderr, " %ld", expr->dyn.i);
+			fprintf(stderr, " %ld", expr->m1.i);
 		}
-		else if (expr->ast == &expr_double)
+		else if (expr->m0.ast == &expr_double)
 		{
-			fprintf(stderr, " %f", expr->dyn.d);
+			fprintf(stderr, " %f", expr->m1.d);
 		}
-		else if (USES_CONTEXT(expr->ast->nodetype))
+		else if (USES_CONTEXT(expr->m0.ast->nodetype))
 		{
-			print_context(stderr, expr->ast->parent, expr->dyn.context);
+			print_context(stderr, expr->m0.ast->parent, expr->m1.mem);
 		}
 		fprintf(stderr, "\n");
 	}

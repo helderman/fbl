@@ -73,16 +73,19 @@ static int heap_gc_mark(MEMORY *dest)
 			back = current;
 			if (dest != NULL && !IS_MARKED(dest->m0.mem))
 			{
-				NODE *node = dest->m0.ast;
-				assert(node != NULL);
+				NODE *ast = dest->m0.ast;
+				assert(ast != NULL);
 				dest->m0.mem = MARK(dest->m0.mem);
 				++count_marked;
-				current = dest->m1.mem;
-				if (current != NULL && node->nodetype != NT_ATOM)
+				if (ast->nodetype != NT_ATOM)
 				{
-					dest->m1.mem = MARK(back);
-					back = dest;
-					dest = current;
+					current = dest->m1.mem;
+					if (current != NULL)
+					{
+						dest->m1.mem = MARK(back);
+						back = dest;
+						dest = current;
+					}
 				}
 			}
 			assert(!IS_MARKED(dest));
@@ -97,14 +100,14 @@ static int heap_gc_sweep(void)
 	int count = heap_size;
 	while (--count >= 0)
 	{
-		MEMORY *node = memory + count;
-		if (IS_MARKED(node->m0.mem))
+		MEMORY *cell = memory + count;
+		if (IS_MARKED(cell->m0.mem))
 		{
-			node->m0.mem = UNMARK(node->m0.mem);
+			cell->m0.mem = UNMARK(cell->m0.mem);
 		}
 		else
 		{
-			heap_free(node);
+			heap_free(cell);
 			++collected;
 		}
 	}
@@ -137,12 +140,12 @@ MEMORY *heap_alloc(MEMORY *ptr0, MEMORY *ptr1)
 	return mine;
 }
 
-/* Free a node by adding it to the free list.
+/* Free a cell by adding it to the free list.
 ** Only use this when you are absolutely sure
-** there are no more references to this node!
+** there are no more references to this cell!
 */
-void heap_free(MEMORY *node)
+void heap_free(MEMORY *cell)
 {
-	node->m0.mem = freelist;
-	freelist = node;
+	cell->m0.mem = freelist;
+	freelist = cell;
 }

@@ -2,7 +2,7 @@
 **
 ** Syntax:
 **   <expression> ::= <apply>
-**                  | <apply> ";" <identifier> <atomic>
+**                  | <expression> ";" <identifier> <atomic>
 **   <apply>      ::= <atomic>
 **                  | <apply> <atomic>
 **   <atomic>     ::= "\" <identifier> <atomic>
